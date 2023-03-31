@@ -63,7 +63,7 @@ app.get("/api/userLift/:userID", async (req, res) => {
   try {
     const { userID } = req.params;
     const { liftType } = req.query;
-    const curr = new Date("2023-03-05T12:00:00.000Z");
+    const curr = new Date("2023-05-21T12:00:00.000Z");
     const first = curr.getDate() - curr.getDay();
     const last = first + 6;
 
@@ -87,7 +87,7 @@ app.get("/api/userLift/:userID", async (req, res) => {
     console.log(
       `Total attempted reps for user ${userID}, lift type ${liftType}, and week starting from ${firstday} are ${sumAttemptedReps}`
     );
-    res.status().send({"Total attemted reps are": sumAttemptedReps});
+    res.status(200).send({"total_attemtedReps": sumAttemptedReps});
   } catch (error) {
     res.status(505).send({ message: error.message });
   }
