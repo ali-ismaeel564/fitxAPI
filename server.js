@@ -92,7 +92,7 @@ app.get("/api/userLift/:userID", async (req, res) => {
 });
 
 mongoose
-  .connect("mongodb://127.0.0.1:27017/fitX")
+  .connect(process.env.MONGODB_URL)
   .then(() => {
     console.log("Connected!");
     app.listen(port, () => {
