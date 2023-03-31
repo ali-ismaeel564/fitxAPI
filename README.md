@@ -1,2 +1,3 @@
 # fitxAPI
-To run this project "install npm install"
+To run this project run this command "npm install"
+And then run  "npm run dev"
