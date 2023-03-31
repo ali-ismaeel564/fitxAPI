@@ -63,7 +63,9 @@ app.get("/api/userLift/:userID", async (req, res) => {
   try {
     const { userID } = req.params;
     const { liftType } = req.query;
-    const curr = new Date("2023-05-21T12:00:00.000Z");
+    const { date } = req.query;
+    const curr = new Date(date);
+    // const curr = new Date("2023-05-21T12:00:00.000Z");
     const first = curr.getDate() - curr.getDay();
     const last = first + 6;
 
