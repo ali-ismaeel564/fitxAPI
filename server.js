@@ -11,18 +11,20 @@ app.use(express.json());
 
 const port = process.env.PORT || 3000;
 app.get("/", (req, res) => {
-  const curr = new Date("2023-03-04T12:00:00.000Z");
-  const first = curr.getDate() - curr.getDay();
+  // const curr = new Date("2023-03-04T12:00:00.000Z");
+  // const first = curr.getDate() - curr.getDay();
   // console.log(curr.getDate());
   // console.log(curr.getDay());
-  const last = first + 6;
+  // const last = first + 6;
 
-  var firstday = new Date(curr.setDate(first)).toUTCString();
-  var lastday = new Date(curr.setDate(last)).toUTCString();
+  // var firstday = new Date(curr.setDate(first)).toUTCString();
+  // var lastday = new Date(curr.setDate(last)).toUTCString();
 
-  res
-    .status(200)
-    .send({ currentDate: curr, startDate: firstday, endDate: lastday });
+  // res
+  //   .status(200)
+  //   .send({ currentDate: curr, startDate: firstday, endDate: lastday });
+
+  res.status(200).send("fitxAPI is live now...")
 });
 
 app.post("/api/user", async (req, res) => {
