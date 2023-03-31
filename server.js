@@ -1,11 +1,14 @@
 const express = require("express");
+const cors = require('cors');
 const userModel = require("./models/userModel");
 const userRepsModel = require("./models/userRepModel");
 const userLiftModel = require("./models/userLiftModel");
 const mongoose = require("mongoose");
 const app = express();
+app.use(cors());
 app.use(express.json());
 
+const port = process.env.PORT || 3000;
 app.get("/", (req, res) => {
   const curr = new Date("2023-03-04T12:00:00.000Z");
   const first = curr.getDate() - curr.getDay();
@@ -92,8 +95,8 @@ mongoose
   .connect("mongodb://127.0.0.1:27017/fitX")
   .then(() => {
     console.log("Connected!");
-    app.listen(3000, () => {
-      console.log("App is listening on port 3000...");
+    app.listen(port, () => {
+      console.log(`App is listening on port ${port}...`);
     });
   })
   .catch((error) => {
