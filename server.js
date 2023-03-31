@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const cors = require('cors');
 const userModel = require("./models/userModel");
@@ -12,8 +13,8 @@ const port = process.env.PORT || 3000;
 app.get("/", (req, res) => {
   const curr = new Date("2023-03-04T12:00:00.000Z");
   const first = curr.getDate() - curr.getDay();
-  console.log(curr.getDate());
-  console.log(curr.getDay());
+  // console.log(curr.getDate());
+  // console.log(curr.getDay());
   const last = first + 6;
 
   var firstday = new Date(curr.setDate(first)).toUTCString();
@@ -86,6 +87,7 @@ app.get("/api/userLift/:userID", async (req, res) => {
     console.log(
       `Total attempted reps for user ${userID}, lift type ${liftType}, and week starting from ${firstday} are ${sumAttemptedReps}`
     );
+    res.status().send({"Total attemted reps are": sumAttemptedReps});
   } catch (error) {
     res.status(505).send({ message: error.message });
   }
