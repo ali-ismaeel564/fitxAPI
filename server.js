@@ -40,8 +40,18 @@ app.post("/api/user", async (req, res) => {
 
 app.post("/api/userReps", async (req, res) => {
   try {
-    const userReps = await userRepsModel.create(req.body);
-    res.status(201).send({ status: "success", data: { userReps } });
+    // const userReps = await userRepsModel.create(req.body);
+    // res.status(201).send({ status: "success", data: { userReps } });
+    const { userID, videoID, ...rest } = req.body;
+    const userRep = {
+      userID: new mongoose.Types.ObjectId(userID),
+      videoID: new mongoose.Types.ObjectId(videoID),
+      ...rest,
+    };
+    const createdUserRep = await userRepsModel.create(userRep);
+    res
+      .status(201)
+      .send({ status: "success", data: { userRep: createdUserRep } });
   } catch (error) {
     res.status(400).send({ status: "error", message: error.message });
   }
@@ -119,6 +129,8 @@ app.get("/api/leaderboards", async (req, res) => {
           totalAttemptedReps: { $sum: "$attemptedReps" },
           weight: { $first: "$user.weight_kg" },
           liftType: { $first: "$liftType" },
+          firstName: {$first: "$user.firstName"},
+          lastName: {$first: "$user.lastName"}
         },
       },
       {
@@ -127,6 +139,7 @@ app.get("/api/leaderboards", async (req, res) => {
           weight: 1,
           liftType: 1,
           totalAttemptedReps: 1,
+          userName: { $concat: [ "$firstName", " ", "$lastName" ] },
           _id: 0,
         },
       },
