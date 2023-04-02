@@ -15,17 +15,23 @@ app.get("/", (req, res) => {
 
 app.post("/api/user", async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, userID } = req.body;
     const emailValid = isValidEmail(email);
+    const userExist = await userModel.findOne({ userID: userID });
+    if (userExist) {
+      return res
+        .status(409)
+        .send({ message: `user with ${userID} id is already exist` });
+    }
     if (!emailValid) {
-      res.status(400).send({ message: `${email} is not valid email` });
+      return res.status(400).send({ message: `${email} is not valid email` });
     } else {
       const emailExist = await userModel
         .findOne({ email: email })
         .select({ email: 1 })
         .limit(1);
       if (emailExist) {
-        res
+        return res
           .status(409)
           .send({ message: `'${emailExist["email"]}' is already exist` });
       } else {
@@ -40,15 +46,14 @@ app.post("/api/user", async (req, res) => {
 
 app.post("/api/userReps", async (req, res) => {
   try {
-    // const userReps = await userRepsModel.create(req.body);
-    // res.status(201).send({ status: "success", data: { userReps } });
-    const { userID, videoID, ...rest } = req.body;
-    const userRep = {
-      userID: new mongoose.Types.ObjectId(userID),
-      videoID: new mongoose.Types.ObjectId(videoID),
-      ...rest,
-    };
-    const createdUserRep = await userRepsModel.create(userRep);
+    const { videoID } = req.body;
+    const videoIDExist = await userRepsModel.findOne({ videoID: videoID });
+    if (videoIDExist) {
+      return res
+        .status(409)
+        .send({ message: `video with ${videoID} id is already exist` });
+    }
+    const createdUserRep = await userRepsModel.create(req.body);
     res
       .status(201)
       .send({ status: "success", data: { userRep: createdUserRep } });
@@ -83,7 +88,6 @@ app.get("/api/userLift/:userID", async (req, res) => {
         $lte: lastday,
       },
     });
-
     if (!userReps || userReps.length === 0) {
       return res.status(404).send({ message: "User reps not found" });
     }
@@ -93,9 +97,6 @@ app.get("/api/userLift/:userID", async (req, res) => {
       return total + userRep.attemptedReps;
     }, 0);
 
-    // console.log(
-    //   `Total attempted reps for user ${userID}, lift type ${liftType}, and week starting from ${firstday} are ${sumAttemptedReps}`
-    // );
     res.status(200).send({
       status: "success",
       data: { userID: userID, total_attemtedReps: sumAttemptedReps },
@@ -113,7 +114,7 @@ app.get("/api/leaderboards", async (req, res) => {
         $lookup: {
           from: "users",
           localField: "userID",
-          foreignField: "_id",
+          foreignField: "userID",
           as: "user",
         },
       },
@@ -129,8 +130,8 @@ app.get("/api/leaderboards", async (req, res) => {
           totalAttemptedReps: { $sum: "$attemptedReps" },
           weight: { $first: "$user.weight_kg" },
           liftType: { $first: "$liftType" },
-          firstName: {$first: "$user.firstName"},
-          lastName: {$first: "$user.lastName"}
+          firstName: { $first: "$user.firstName" },
+          lastName: { $first: "$user.lastName" },
         },
       },
       {
@@ -139,7 +140,7 @@ app.get("/api/leaderboards", async (req, res) => {
           weight: 1,
           liftType: 1,
           totalAttemptedReps: 1,
-          userName: { $concat: [ "$firstName", " ", "$lastName" ] },
+          userName: { $concat: ["$firstName", " ", "$lastName"] },
           _id: 0,
         },
       },
