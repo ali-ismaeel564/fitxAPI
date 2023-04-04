@@ -18,7 +18,7 @@ app.post("/api/user", async (req, res) => {
     const { email, userID } = req.body;
     const emailValid = isValidEmail(email);
     const userExist = await userModel.findOne({ userID: userID });
-    if (userExist) {
+    if (userExist != null) {
       return res
         .status(409)
         .send({ message: `user with ${userID} id is already exist` });
@@ -145,7 +145,7 @@ app.get("/api/leaderboards", async (req, res) => {
         },
       },
       {
-        $sort: { weight: -1, totalAttemptedReps: -1 },
+        $sort: { totalAttemptedReps: -1 },
       },
       {
         $limit: parseInt(limit) || 1000,
