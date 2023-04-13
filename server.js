@@ -1,20 +1,71 @@
 require("dotenv").config();
+const _ = require("lodash");
+const bcrypt = require("bcrypt");
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const userModel = require("./models/userModel");
 const userRepsModel = require("./models/userRepModel");
+const signUpModel = require("./models/signUpModel");
+const login = require("./routes/login")
 const mongoose = require("mongoose");
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use('/api/login', login);
+
+const requiredEnvVariables = ['MONGODB_URL', 'FITX_SECRET_KEY', 'GURU_Client_ID', 'GURU_Client_Secret'];
+
+requiredEnvVariables.forEach((envVar) => {
+  if (!process.env.hasOwnProperty(envVar)) {
+    console.error(`FATAL ERROR: ${envVar} environment variable is not defined`);
+    process.exit(1);
+  }
+});
 
 const port = process.env.PORT || 3000;
 app.get("/", (req, res) => {
   res.status(200).send("fitxAPI is live now...");
 });
 
+//User signup
+app.post("/api/signup", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const emailValid = isValidEmail(email);
+    if (!emailValid) {
+      return res.status(400).send({ message: `${email} is not valid email` });
+    } else {
+      const emailExist = await signUpModel
+        .findOne({ email: email })
+        .select({ email: 1 })
+        .limit(1);
+      if (emailExist) {
+        return res
+          .status(409)
+          .send({ message: `'${emailExist["email"]}' is already exist` });
+      } else {
+        let {password} = req.body;
+        const salt = await bcrypt.genSalt(10);
+        password = await bcrypt.hash(password, salt);
+        req.body.password = password;
+        const user = await signUpModel.create(_.pick(req.body, ["firstName", "lastName", "email", "password"]));
+        const idToken = jwt.sign({user: _.pick(user, ["_id", "firstName", "lastName", "email"])}, process.env.FITX_SECRET_KEY);
+        res.setHeader('x-auth-token', idToken);
+        res.status(201).send({ data: _.pick(user, ["firstName", "lastName", "email"]) });
+      }
+    }
+  } catch (error) {
+    res.status(500).send({ message: error.message });
+  }
+});
+
+// make an api api/userPatch... req body should be same like the bottom one....it should be authorized....
+
 app.post("/api/user", async (req, res) => {
   try {
+    // const token = req.header("x-auth-token");
+    // if(!token) res.status(401).send("Acess denied. No token provided.");
     const { email, userID } = req.body;
     const emailValid = isValidEmail(email);
     const userExist = await userModel.findOne({ userID: userID });
@@ -162,7 +213,8 @@ app.get("/api/leaderboards", async (req, res) => {
 });
 
 mongoose
-  .connect(process.env.MONGODB_URL)
+  // .connect(process.env.MONGODB_URL)
+  .connect("mongodb://localhost:27017/fitx-backend")
   .then(() => {
     console.log("Connected!");
     app.listen(port, () => {
