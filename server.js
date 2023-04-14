@@ -3,18 +3,24 @@ const _ = require("lodash");
 const bcrypt = require("bcrypt");
 const express = require("express");
 const cors = require("cors");
-const jwt = require("jsonwebtoken");
 const userModel = require("./models/userModel");
 const userRepsModel = require("./models/userRepModel");
 const signUpModel = require("./models/signUpModel");
-const login = require("./routes/login")
+const userPatchupModel = require("./models/userPatchupModel");
+const login = require("./routes/login");
+const auth = require("./middleware/auth");
 const mongoose = require("mongoose");
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use('/api/login', login);
+app.use("/api/login", login);
 
-const requiredEnvVariables = ['MONGODB_URL', 'FITX_SECRET_KEY', 'GURU_Client_ID', 'GURU_Client_Secret'];
+const requiredEnvVariables = [
+  "MONGODB_URL",
+  "FITX_SECRET_KEY",
+  "GURU_Client_ID",
+  "GURU_Client_Secret",
+];
 
 requiredEnvVariables.forEach((envVar) => {
   if (!process.env.hasOwnProperty(envVar)) {
@@ -45,14 +51,19 @@ app.post("/api/signup", async (req, res) => {
           .status(409)
           .send({ message: `'${emailExist["email"]}' is already exist` });
       } else {
-        let {password} = req.body;
+        let { password } = req.body;
         const salt = await bcrypt.genSalt(10);
         password = await bcrypt.hash(password, salt);
         req.body.password = password;
-        const user = await signUpModel.create(_.pick(req.body, ["firstName", "lastName", "email", "password"]));
-        const idToken = jwt.sign({user: _.pick(user, ["_id", "firstName", "lastName", "email"])}, process.env.FITX_SECRET_KEY);
-        res.setHeader('x-auth-token', idToken);
-        res.status(201).send({ data: _.pick(user, ["firstName", "lastName", "email"]) });
+        const user = await signUpModel.create(
+          _.pick(req.body, ["firstName", "lastName", "email", "password"])
+        );
+        // To set header token during signup
+        // const idToken = jwt.sign({user: _.pick(user, ["_id", "firstName", "lastName", "email"])}, process.env.FITX_SECRET_KEY);
+        // res.setHeader('x-auth-token', idToken);
+        res
+          .status(201)
+          .send({ data: _.pick(user, ["firstName", "lastName", "email"]) });
       }
     }
   } catch (error) {
@@ -60,12 +71,31 @@ app.post("/api/signup", async (req, res) => {
   }
 });
 
-// make an api api/userPatch... req body should be same like the bottom one....it should be authorized....
-
-app.post("/api/user", async (req, res) => {
+app.post("/api/userPatchup", auth, async (req, res) => {
   try {
-    // const token = req.header("x-auth-token");
-    // if(!token) res.status(401).send("Acess denied. No token provided.");
+    const userID = req.user._id;
+    const { height_cm, weight_kg } = req.body;
+
+    if (!height_cm || !weight_kg) {
+      return res
+        .status(400)
+        .send({ error: "height_cm and weight_kg are required" });
+    }
+
+    const userPatchup = await userPatchupModel.create({
+      height_cm,
+      weight_kg,
+      userID,
+    });
+    res.status(201).send({ data: userPatchup });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ error: "Internal Server Error" });
+  }
+});
+
+app.post("/api/user", auth, async (req, res) => {
+  try {
     const { email, userID } = req.body;
     const emailValid = isValidEmail(email);
     const userExist = await userModel.findOne({ userID: userID });
@@ -95,7 +125,7 @@ app.post("/api/user", async (req, res) => {
   }
 });
 
-app.post("/api/userReps", async (req, res) => {
+app.post("/api/userReps", auth, async (req, res) => {
   try {
     const { videoID } = req.body;
     const videoIDExist = await userRepsModel.findOne({ videoID: videoID });
@@ -113,7 +143,7 @@ app.post("/api/userReps", async (req, res) => {
   }
 });
 
-app.get("/api/userLift/:userID", async (req, res) => {
+app.get("/api/userLift/:userID", auth, async (req, res) => {
   try {
     const { userID } = req.params;
     const { liftType } = req.query;
@@ -157,7 +187,7 @@ app.get("/api/userLift/:userID", async (req, res) => {
   }
 });
 
-app.get("/api/leaderboards", async (req, res) => {
+app.get("/api/leaderboards", auth, async (req, res) => {
   try {
     const { liftType, limit } = req.query;
     const userReps = await userRepsModel.aggregate([
@@ -213,8 +243,7 @@ app.get("/api/leaderboards", async (req, res) => {
 });
 
 mongoose
-  // .connect(process.env.MONGODB_URL)
-  .connect("mongodb://localhost:27017/fitx-backend")
+  .connect(process.env.MONGODB_URL)
   .then(() => {
     console.log("Connected!");
     app.listen(port, () => {

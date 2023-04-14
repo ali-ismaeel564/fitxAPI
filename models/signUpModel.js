@@ -8,8 +8,8 @@ const signUpSchema = mongoose.Schema(
       required: [true, "Email is mandatory for signup"],
     },
     password: {
-       type: String,
-       required: [true, "Password is mandatory for signup"]
+      type: String,
+      required: [true, "Password is mandatory for signup"],
     },
   },
   {
